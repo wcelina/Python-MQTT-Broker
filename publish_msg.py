@@ -20,8 +20,8 @@ class Publish():
         'Back\n']
     MSGLOCA_TOPIC = [
         'mqtt_topic_prefix/m/d/${device_id}/d2c\n(Publish messages to nRF Cloud,\nsuch as Location Services data.)\n',
-        'mqtt_topic_prefix/m/d/${device_id}/d2c/bulk\n(Publish a batch of messages to nRF Cloud as an array,\nwhich republishes each message in the array to the\n\
-         /d2c topic as if each message were published individually.\n Messages sent to /d2c/bulk are not stored.)'
+        'mqtt_topic_prefix/m/d/${device_id}/d2c/bulk\n(Publish a batch of messages to nRF Cloud as an array,\nwhich republishes each message in the array to the\
+         /d2c topic\n as if each message were published individually.\n Messages sent to /d2c/bulk are not stored.)'
         'Back\n']
     FOTA_TOPIC = [
         '${device_id}/jobs/req\n(Request the current pending job exection for an IP-based device.)',

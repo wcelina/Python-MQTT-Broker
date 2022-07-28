@@ -10,7 +10,7 @@ import http_requests
 import generate_certs 
 import option_2
 import subscriptions
-#import publish_msg
+import publish_msg
 
 ACC_URL = 'https://api.nrfcloud.com/v1/account'
 DEV_URL = 'https://api.nrfcloud.com/v1/devices'
@@ -25,34 +25,37 @@ device_id = None
 target_id = None
 mqtt_topic_prefix = None
 client = None
+loop_flag = 0
 start_menu = 0
 certs_flag = None
 subbed_list = []
 
 def on_publish(client, userdata, mid):
     '''MQTT published message callback'''
-    print('Messages published!' + mid)
+    print('Messages published!', mid)
 
 def on_message(client, userdata, msg):
     '''MQTT message receive callback'''
-    print("Message received from subscribed topic!\n")
-    #print('Message: ', str(msg.payload.decode("utf-8")))
+    print('Message: ', str(msg.payload.decode("utf-8")))
+    print('Topic =  ', msg.topic)
 
 def on_unsubscribe(client, userdata, mid):
     '''MQTT topic unsubscribe callback'''
-    print('\nUnsubscribed.')
+    print('\nUnsubscribed.', mid)
 
 def on_subscribe(client, userdata, mid, granted_qos):
     '''MQTT topic subscribe callback'''
-    print('\nSubscribed.')
+    print('\nSubscribed. ', mid)
     print('QOS: ' + str(granted_qos) + '\n')
     #code to add topic to memory
 
 def on_connect(client, userdata, flags, rc):
-    '''MQTT broker connect callback. Logs message and sets connect flag.'''
+    '''MQTT broker connect callback.'''
+    global loop_flag 
     print('Connected with result code: ' + mqtt.connack_string(rc))
     if rc == mqtt.CONNACK_ACCEPTED:
         print("CONNACK RECEIVED. Returned code = ", rc)
+        loop_flag += 1
         client.connected_flag = True
         time.sleep(0.5)
         print('Subscribing...')
@@ -100,7 +103,7 @@ def get_choice(options):
         return choice-1
 
 subscriptions = subscriptions.Subscriptions(get_choice)
-#publish_msg = publish_msg.Publish(get_choice)
+publish_msg = publish_msg.Publish(get_choice)
 
 def menu():
     global live
@@ -124,7 +127,7 @@ def menu():
     if menu_options[choice] == 'Subscriptions':
         subscriptions.menu(mqtt_topic_prefix, target_id, client)
     elif menu_options[choice] == 'Publish a Message':
-        option_2.my_func()
+        publish_msg.menu(mqtt_topic_prefix, target_id, client)
     elif menu_options[choice] == 'Option 3':
         option_2.my_func()
     elif menu_options[choice] == 'Quit':
@@ -137,6 +140,7 @@ def main():
     global client
     global target_id
     global mqtt_topic_prefix
+    global loop_flag
 
     args = parse_args()
     api_key = args.apikey
@@ -213,7 +217,7 @@ def main():
    
     time.sleep(1)   
     print('\nConnecting to MQTT broker...\n')
-    client = mqtt.Client(client_id, clean_session=False)
+    client = mqtt.Client(client_id, clean_session=True)
     client.on_connect = on_connect  #bind functions to callback
     client.on_subscribe = on_subscribe
     client.on_publish = on_publish
@@ -225,11 +229,11 @@ def main():
 
     while live: 
         client.loop_start()
+        while loop_flag == 0:
+            time.sleep(0.01)
         menu()
-    
-        #while loop_flag = 1
-            #time.sleep(0.01)
-        #then add menu() here
+        client.loop_stop()
+        time.sleep(3)
 
     client.disconnect()
     client.loop_stop()
