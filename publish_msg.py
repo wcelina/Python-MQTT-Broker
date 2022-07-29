@@ -36,7 +36,7 @@ class Publish():
     
     def menu(self, mqtt_topic_prefix, target_id, client):
         '''Publishes Main Menu'''
-        select_flag = 0
+        select_flag = 0 #for if the user has selected a topic
         print('-------Publish Main Menu--------')
         choice = self._get_choice(self.PUBS_MENU)
         if choice is None or choice == -1:
@@ -62,10 +62,10 @@ class Publish():
                 msgloca_choice = self._get_choice(self.MSGLOCA_TOPIC)
                 if msgloca_choice == 0:
                     select_flag = 1
-                    topic_format = (mqtt_topic_prefix + '/m/d/' + target_id + '/d2c')
+                    topic_format = (mqtt_topic_prefix + 'm/d/' + target_id + '/d2c')
                 elif msgloca_choice == 1:
                     select_flag = 1
-                    topic_format = (mqtt_topic_prefix + '/m/d/' + target_id + '/d2c/bulk')
+                    topic_format = (mqtt_topic_prefix + 'm/d/' + target_id + '/d2c/bulk')
                 elif msgloca_choice == 2:
                     select_flag = 0 
                     self.menu(mqtt_topic_prefix, target_id, client)            
@@ -86,14 +86,15 @@ class Publish():
                 additional_choice = self._get_choice(self.ADDITIONAL_TOPIC)
                 if additional_choice == 0:
                     select_flag = 1
-                    topic_format = (mqtt_topic_prefix + '/m/#')
+                    topic_format = (mqtt_topic_prefix + 'm/#')
                 elif additional_choice == 1:
                     select_flag = 0
                     self.menu(mqtt_topic_prefix, target_id, client)
-            
+
             if select_flag == 1:
+                user_msg = input('Enter your message to publish: ')
                 print('Initializing... ' + topic_format)
-                client.publish(topic_format)
+                client.publish('"'+topic_format+'"', '"'+user_msg+'"', 1, True)
 
             #client.publish(topic=topic_format, payload=user_message, qos=2, retain=True)
 

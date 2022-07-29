@@ -21,6 +21,7 @@ class Subscriptions():
         'Back\n']
     MSGLOCA_TOPIC = [
         'mqtt_topic_prefix/m/d/${device_id}/c2d\n(Receive messages from nRF Cloud,\nsuch as Location Services data.)\n',
+        'mqtt_topic_prefix/m/d/${device_id}/d2c\n(Publish messages to nRF Cloud,\nsuch as Location Services data.)\n',
         'Back\n']
     FOTA_TOPIC = [
         '${device_id}/jobs/rcv\n(Receive a FOTA job execution for\nan IP-based device.)\n',
@@ -64,7 +65,10 @@ class Subscriptions():
                 msgloca_choice = self._get_choice(self.MSGLOCA_TOPIC)
                 if msgloca_choice == 0:
                     select_flag = 1
-                    topic_format = (mqtt_topic_prefix + '/m/d/' + target_id + '/c2d')
+                    topic_format = (mqtt_topic_prefix + 'm/d/' + target_id + '/c2d')
+                elif msgloca_choice == 1:
+                    select_flag = 1
+                    topic_format = (mqtt_topic_prefix + 'm/d/' + target_id + '/d2c')
                 elif msgloca_choice == 1:
                     select_flag = 0 
                     self.menu(mqtt_topic_prefix, target_id, client)            
@@ -82,7 +86,7 @@ class Subscriptions():
                 additional_choice = self._get_choice(self.ADDITIONAL_TOPIC)
                 if additional_choice == 0:
                     select_flag = 1
-                    topic_format = (mqtt_topic_prefix + '/m/#')
+                    topic_format = (mqtt_topic_prefix + 'm/#')
                 elif additional_choice == 1:
                     select_flag = 1
                     topic_format = (mqtt_topic_prefix + 'a/connections')
@@ -93,7 +97,7 @@ class Subscriptions():
             if select_flag == 1:
                 print('Initializing... ' + topic_format)
                 client.subscribe(topic_format, 2)
-            
+
 
         elif choice == 1:   #unsubscribe to a topic
             print('----Unsubscribe to a Topic----')
@@ -101,8 +105,6 @@ class Subscriptions():
             topic_format = (mqtt_topic_prefix + '/m/d/' + target_id + user_topic)
             print('Initializing... ' + topic_format)
             client.unsubscribe(topic_format)
-
-
 
         elif choice == 2:   #list topics subscribed to
             print('list subbed topics here')

@@ -1,5 +1,6 @@
 import argparse
 import logging
+import queue
 import sys
 import time 
 import json 
@@ -29,6 +30,10 @@ loop_flag = 0
 start_menu = 0
 certs_flag = None
 subbed_list = []
+first_connect = 0
+
+def on_log(client, userdata, level, buf):
+    print('log: ', buf)
 
 def on_publish(client, userdata, mid):
     '''MQTT published message callback'''
@@ -36,8 +41,11 @@ def on_publish(client, userdata, mid):
 
 def on_message(client, userdata, msg):
     '''MQTT message receive callback'''
-    print('Message: ', str(msg.payload.decode("utf-8")))
-    print('Topic =  ', msg.topic)
+    m = ('Message: ', str(msg.payload.decode("utf-8")))
+    #msg.append(m)  #put messages in list
+    #queue.put(m)    #put messages on queue
+    print('Msg QOS: ', msg.qos)
+    print(m)
 
 def on_unsubscribe(client, userdata, mid):
     '''MQTT topic unsubscribe callback'''
@@ -52,16 +60,19 @@ def on_subscribe(client, userdata, mid, granted_qos):
 def on_connect(client, userdata, flags, rc):
     '''MQTT broker connect callback.'''
     global loop_flag 
-    print('Connected with result code: ' + mqtt.connack_string(rc))
-    if rc == mqtt.CONNACK_ACCEPTED:
-        print("CONNACK RECEIVED. Returned code = ", rc)
-        loop_flag += 1
-        client.connected_flag = True
-        time.sleep(0.5)
-        print('Subscribing...')
-        client.subscribe(d2c_topic)
-    else:
-        print("Bad connection. Returned code = ", rc)
+    global first_connect 
+    if first_connect == 0:  #only run through this at the start of the program
+        first_connect += 1
+        print('Response: ' + mqtt.connack_string(rc))
+        if rc == mqtt.CONNACK_ACCEPTED:
+            print("CONNACK RECEIVED. Returned code = ", rc)
+            loop_flag += 1
+            client.connected_flag = True
+            time.sleep(0.5)
+            print('Subscribing to /d2c...')
+            client.subscribe(d2c_topic)
+        else:
+            print("Bad connection. Returned code = ", rc)
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Device Credentials Installer",
@@ -158,13 +169,13 @@ def main():
     client_id = client_id[:client_id.index('/')]
     client_id = 'account-' + client_id 
 
-    print('\n    MQTT Endpoint: ' + mqtt_endpoint)
+    print('\n    MQTT Endpoint: ' + mqtt_endpoint)  #print out account info
     print('MQTT Topic Prefix: ' + mqtt_topic_prefix)
     print('   MQTT Client ID: ' + client_id)
     time.sleep(1)
 
     print('\nSearching nRF Cloud for account devices...')
-    resp = http_requests.http_req('GET', DEV_URL, api_key)   #fetch device information
+    resp = http_requests.http_req('GET', DEV_URL, api_key)   #fetch device info
     device_list = []
     for device in resp['items']:
         device_list.append(device['id']) #put device IDs in device_list array
@@ -176,12 +187,12 @@ def main():
         time.sleep(0.5)
         print('\nFound account device:', device_id) 
         time.sleep(0.5)
-        generate_certs.found_acc_device(api_key, certs_flag)
+        generate_certs.found_acc_device(api_key, certs_flag)    #determine if we need certs
     else:
         found_flag = 0
 
     if found_flag == 0:   #if no account device found, ask if user wants to create one
-        generate_certs.create_device(api_key, certs_flag) 
+        generate_certs.create_device(api_key, certs_flag)   #create acc dev and certs
     if certs_flag == 1:    #files not generated, go back to login
         main()
     
@@ -217,11 +228,12 @@ def main():
    
     time.sleep(1)   
     print('\nConnecting to MQTT broker...\n')
-    client = mqtt.Client(client_id, clean_session=True)
+    client = mqtt.Client(client_id, clean_session=False)
     client.on_connect = on_connect  #bind functions to callback
     client.on_subscribe = on_subscribe
     client.on_publish = on_publish
     client.on_message = on_message
+    client.on_log = on_log 
     client.tls_set(ca_certs=str('./caCert.pem'), certfile=str('./clientCert.pem'),
                     keyfile=str('./privateKey.pem'), cert_reqs=mqtt.ssl.CERT_REQUIRED,
                     tls_version=mqtt.ssl.PROTOCOL_TLS, ciphers=None)
@@ -232,8 +244,6 @@ def main():
         while loop_flag == 0:
             time.sleep(0.01)
         menu()
-        client.loop_stop()
-        time.sleep(3)
 
     client.disconnect()
     client.loop_stop()
