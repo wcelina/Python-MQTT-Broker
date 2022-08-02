@@ -41,7 +41,7 @@ def on_publish(client, userdata, mid):
 
 def on_message(client, userdata, msg):
     '''MQTT message receive callback'''
-    m = ('Message: ', str(msg.payload.decode("utf-8")))
+    m = ('Message: ', str(msg.payload.decode('utf-8').strip()))
     #msg.append(m)  #put messages in list
     #queue.put(m)    #put messages on queue
     print('Msg QOS: ', msg.qos)
